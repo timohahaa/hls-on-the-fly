@@ -43,6 +43,9 @@ func New(addr string) (*Origin, error) {
 
 func (o *Origin) route() {
 	o.mux.Route("/{filename}/{quality:(360|480|720|1080)}", func(mux chi.Router) {
+		mux.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("OK"))
+		})
 		mux.Get("/media.m3u8", o.mediaM3U8)
 		mux.Get("/chunk.mp4", o.chunk)
 	})
