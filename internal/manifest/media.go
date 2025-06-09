@@ -42,15 +42,18 @@ func Media(src io.Reader, fileURL string) ([]byte, error) {
 	m3u.WriteString("#EXT-X-INDEPENDENT-SEGMENTS\n")
 	{
 		m3u.WriteString("#EXT-X-TARGETDURATION:")
-		m3u.WriteString(strconv.Itoa(getTargetDuration(mp4f)))
+		m3u.WriteString(strconv.Itoa(getTargetDuration(fragments)))
 		m3u.WriteString("\n")
 	}
 	m3u.WriteString("#EXT-X-PLAYLIST-TYPE:VOD\n")
 
 	// init segment
 	{
+		var edgeLink = fileURL +
+			"?from=" + strconv.FormatInt(0, 10) +
+			"&size=" + strconv.FormatInt(int64(mp4f.Init.Size()), 10)
 		m3u.WriteString("#EXT-X-MAP:URI=\"")
-		m3u.WriteString(fileURL)
+		m3u.WriteString(edgeLink)
 		m3u.WriteString("\",BYTERANGE=\"")
 		m3u.WriteString(strconv.FormatInt(int64(mp4f.Init.Size()), 10))
 		// byte range always starts at 0 I guess
@@ -76,7 +79,7 @@ func Media(src io.Reader, fileURL string) ([]byte, error) {
 
 			var edgeLink = fileURL +
 				"?from=" + strconv.FormatInt(frag.startPos, 10) +
-				"?size=" + strconv.FormatInt(frag.size, 10)
+				"&size=" + strconv.FormatInt(frag.size, 10)
 
 			m3u.WriteString(edgeLink)
 			m3u.WriteString("\n")
@@ -120,10 +123,10 @@ func getFragmentInfo(file *mp4.File) ([]fragmentInfo, error) {
 	return fragInfos, nil
 }
 
-func getTargetDuration(file *mp4.File) int {
-	var (
-		dur = float64(file.Moov.Mvhd.Duration)
-		tsc = float64(file.Moov.Mvhd.Timescale)
-	)
-	return int(math.Ceil(dur / tsc))
+func getTargetDuration(framents []fragmentInfo) int {
+	var duration float64
+	for _, f := range framents {
+		duration = max(duration, f.duration)
+	}
+	return int(math.Ceil(duration))
 }
