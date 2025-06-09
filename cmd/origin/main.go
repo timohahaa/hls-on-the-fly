@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":8001", "http port to listen on")
+	addr := flag.String("addr", "127.0.0.1:8001", "http port to listen on")
 
 	flag.Parse()
 

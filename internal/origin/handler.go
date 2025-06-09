@@ -10,6 +10,30 @@ import (
 	"github.com/timohahaa/hls-on-the-fly/internal/manifest"
 )
 
+func (o *Origin) masterM3U8(w http.ResponseWriter, r *http.Request) {
+	var (
+		fileName = chi.URLParam(r, "filename")
+	)
+
+	assets, err := o.storage.GetAllAssets(fileName)
+	if err != nil {
+		log.Errorf("[origin] (filename=%v) %v", fileName, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	m3u, err := manifest.Master(assets, "http://"+o.server.Addr+"/"+fileName)
+	if err != nil {
+		log.Errorf("[origin] (filename=%v) %v", fileName, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/vnd.apple.mpegurl")
+	w.WriteHeader(http.StatusOK)
+	w.Write(m3u)
+}
+
 func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 	var (
 		quality  = chi.URLParam(r, "quality")
@@ -23,7 +47,7 @@ func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m3u, err := manifest.Media(asset, "some.domain.com/"+fileName+"/"+quality+"/chunk.mp4")
+	m3u, err := manifest.Media(asset, "http://"+o.server.Addr+"/"+fileName+"/"+quality+"/chunk.mp4")
 	if err != nil {
 		log.Errorf("[origin] (filename=%v, quality=%v) %v", fileName, quality, err)
 		w.WriteHeader(http.StatusInternalServerError)

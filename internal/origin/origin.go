@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	log "github.com/sirupsen/logrus"
 	"github.com/timohahaa/hls-on-the-fly/internal/storage"
 )
@@ -42,9 +43,13 @@ func New(addr string) (*Origin, error) {
 }
 
 func (o *Origin) route() {
-	o.mux.Route("/{filename}/{quality:(360|480|720|1080)}", func(mux chi.Router) {
-		mux.Get("/media.m3u8", o.mediaM3U8)
-		mux.Get("/chunk.mp4", o.chunk)
+	o.mux.Use(cors.AllowAll().Handler)
+	o.mux.Route("/{filename}", func(mux chi.Router) {
+		mux.Get("/master.m3u8", o.masterM3U8)
+		mux.Route("/{quality:(360|480|720|1080|audio)}", func(mux chi.Router) {
+			mux.Get("/media.m3u8", o.mediaM3U8)
+			mux.Get("/chunk.mp4", o.chunk)
+		})
 	})
 }
 
