@@ -68,7 +68,7 @@ func Media(src io.Reader, params MediaParams) ([]byte, error) {
 		m3u.WriteString("@0\"\n")
 
 		if params.IsEncrypted {
-			m3u.WriteString("#EXT-X-KEY:METHOD=sample-aes,URI=\"")
+			m3u.WriteString("#EXT-X-KEY:METHOD=SAMPLE-AES,URI=\"")
 			m3u.WriteString(params.KeyURL)
 			m3u.WriteString("\",KEYFORMAT=\"identity\",IV=0x")
 			m3u.WriteString(params.IvHex)

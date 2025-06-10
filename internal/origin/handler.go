@@ -52,6 +52,38 @@ func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if isEncrypted {
+		tmpDir := filepath.Join(os.TempDir(), fileName, quality, "media-manifest")
+
+		if err := os.MkdirAll(filepath.Dir(tmpDir), os.ModePerm); err != nil {
+			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		tmpFile, err := os.Create(tmpDir)
+		if err != nil {
+			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = mp4.Encrypt(asset, tmpFile, mp4.EncryptParams{
+			KeyID:  o.kid,
+			Key:    o.key,
+			IVHex:  o.ivHex,
+			Scheme: "cbcs",
+		})
+		if err != nil {
+			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		tmpFile.Seek(0, io.SeekStart)
+		asset = tmpFile
+	}
+
 	var (
 		fileURL = "http://" + o.server.Addr + "/" + fileName + "/" + quality + "/chunk.mp4"
 		keyURL  = "http://" + o.server.Addr + "/key"
@@ -91,7 +123,14 @@ func (o *Origin) chunk(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isEncrypted {
-		tmpDir := filepath.Join(os.TempDir(), fileName)
+		tmpDir := filepath.Join(os.TempDir(), fileName, quality, strconv.FormatInt(from, 10))
+
+		if err := os.MkdirAll(filepath.Dir(tmpDir), os.ModePerm); err != nil {
+			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		tmpFile, err := os.Create(tmpDir)
 		if err != nil {
 			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
