@@ -8,7 +8,7 @@ import (
 	"github.com/timohahaa/hls-on-the-fly/internal/storage"
 )
 
-func Master(assets []storage.Asset, baseURL string) ([]byte, error) {
+func Master(assets []storage.Asset, baseURL string, isEncrypted bool) ([]byte, error) {
 	var (
 		master = m3u8.NewMasterPlaylist()
 		audio  *storage.Asset
@@ -47,6 +47,9 @@ func Master(assets []storage.Asset, baseURL string) ([]byte, error) {
 		}
 
 		var url string = baseURL + "/" + asset.Quality + "/media.m3u8"
+		if isEncrypted {
+			url += "?encrypt=true"
+		}
 
 		variant := &m3u8.Variant{
 			URI: url,
@@ -65,6 +68,9 @@ func Master(assets []storage.Asset, baseURL string) ([]byte, error) {
 
 		if audio != nil {
 			var audioURL string = baseURL + "/" + audio.Quality + "/media.m3u8"
+			if isEncrypted {
+				audioURL += "?encrypt=true"
+			}
 			variant.Alternatives = append(variant.Alternatives, &m3u8.Alternative{
 				Type:     "AUDIO",
 				GroupId:  "audio/mp4a",

@@ -12,7 +12,8 @@ import (
 
 func (o *Origin) masterM3U8(w http.ResponseWriter, r *http.Request) {
 	var (
-		fileName = chi.URLParam(r, "filename")
+		fileName       = chi.URLParam(r, "filename")
+		isEncrypted, _ = strconv.ParseBool(r.URL.Query().Get("encrypt"))
 	)
 
 	assets, err := o.storage.GetAllAssets(fileName)
@@ -22,7 +23,7 @@ func (o *Origin) masterM3U8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m3u, err := manifest.Master(assets, "http://"+o.server.Addr+"/"+fileName)
+	m3u, err := manifest.Master(assets, "http://"+o.server.Addr+"/"+fileName, isEncrypted)
 	if err != nil {
 		log.Errorf("[origin] (filename=%v) %v", fileName, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -36,8 +37,9 @@ func (o *Origin) masterM3U8(w http.ResponseWriter, r *http.Request) {
 
 func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 	var (
-		quality  = chi.URLParam(r, "quality")
-		fileName = chi.URLParam(r, "filename")
+		quality        = chi.URLParam(r, "quality")
+		fileName       = chi.URLParam(r, "filename")
+		isEncrypted, _ = strconv.ParseBool(r.URL.Query().Get("encrypt"))
 	)
 
 	asset, err := o.storage.GetFileAsset(fileName, quality)
@@ -47,7 +49,16 @@ func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	m3u, err := manifest.Media(asset, "http://"+o.server.Addr+"/"+fileName+"/"+quality+"/chunk.mp4")
+	var (
+		fileURL = "http://" + o.server.Addr + "/" + fileName + "/" + quality + "/chunk.mp4"
+		keyURL  = "http://" + o.server.Addr + "/key"
+	)
+	m3u, err := manifest.Media(asset, manifest.MediaParams{
+		FileURL:     fileURL,
+		KeyURL:      keyURL,
+		IvHex:       o.ivHex,
+		IsEncrypted: isEncrypted,
+	})
 	if err != nil {
 		log.Errorf("[origin] (filename=%v, quality=%v) %v", fileName, quality, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -79,4 +90,8 @@ func (o *Origin) chunk(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Length", strconv.FormatInt(size, 10))
 	_, _ = asset.Seek(from, io.SeekStart)
 	_, _ = io.CopyN(w, asset, size)
+}
+
+func (o *Origin) serveKey(w http.ResponseWriter, _ *http.Request) {
+	w.Write(o.key[:])
 }

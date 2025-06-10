@@ -13,7 +13,15 @@ import (
 // TODO:
 // - поддержка seek-time и duration (обрезка видео средствами манифеста) для автовебинаров (#EXT-X-MEDIA-SEQUENCE)
 // - time_offset (#EXT-X-START:TIME-OFFSET=)
-func Media(src io.Reader, fileURL string) ([]byte, error) {
+
+type MediaParams struct {
+	FileURL     string
+	KeyURL      string
+	IvHex       string
+	IsEncrypted bool
+}
+
+func Media(src io.Reader, params MediaParams) ([]byte, error) {
 	var (
 		buf       = make([]byte, 0, 4096)
 		m3u       = bytes.NewBuffer(buf)
@@ -49,7 +57,7 @@ func Media(src io.Reader, fileURL string) ([]byte, error) {
 
 	// init segment
 	{
-		var edgeLink = fileURL +
+		var edgeLink = params.FileURL +
 			"?from=" + strconv.FormatInt(0, 10) +
 			"&size=" + strconv.FormatInt(int64(mp4f.Init.Size()), 10)
 		m3u.WriteString("#EXT-X-MAP:URI=\"")
@@ -59,7 +67,13 @@ func Media(src io.Reader, fileURL string) ([]byte, error) {
 		// byte range always starts at 0 I guess
 		m3u.WriteString("@0\"\n")
 
-		// TODO: add encryption params below
+		if params.IsEncrypted {
+			m3u.WriteString("#EXT-X-KEY:METHOD=sample-aes,URI=\"")
+			m3u.WriteString(params.KeyURL)
+			m3u.WriteString("\",KEYFORMAT=\"identity\",IV=0x")
+			m3u.WriteString(params.IvHex)
+			m3u.WriteString("\n")
+		}
 	}
 
 	m3u.WriteString("#EXT-X-MEDIA-SEQUENCE:0\n")
@@ -77,9 +91,13 @@ func Media(src io.Reader, fileURL string) ([]byte, error) {
 			m3u.WriteString(strconv.FormatInt(frag.startPos, 10))
 			m3u.WriteString("\n")
 
-			var edgeLink = fileURL +
+			var edgeLink = params.FileURL +
 				"?from=" + strconv.FormatInt(frag.startPos, 10) +
 				"&size=" + strconv.FormatInt(frag.size, 10)
+
+			if params.IsEncrypted {
+				edgeLink += "&encrypt=true"
+			}
 
 			m3u.WriteString(edgeLink)
 			m3u.WriteString("\n")
