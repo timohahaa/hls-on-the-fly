@@ -28,7 +28,7 @@ type Origin struct {
 	domain string
 }
 
-func New(addr, domain string) (*Origin, error) {
+func New(addr, domain, filesBasePath string) (*Origin, error) {
 	var (
 		mux = chi.NewMux()
 		o   = &Origin{
@@ -46,7 +46,7 @@ func New(addr, domain string) (*Origin, error) {
 		err error
 	)
 
-	if o.storage, err = storage.New(); err != nil {
+	if o.storage, err = storage.New(filesBasePath); err != nil {
 		return nil, err
 	}
 

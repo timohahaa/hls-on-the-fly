@@ -4,16 +4,17 @@ import (
 	"errors"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 )
 
-const basePath = "/home/timofey/hls-on-the-fly/"
+//const basePath = "/home/timohahaa/work/kinescope/sandbox/hls-on-the-fly/"
 
 type Storage struct {
 	files map[string]map[string]Asset
 }
 
-func New() (*Storage, error) {
+func New(basePath string) (*Storage, error) {
 	return &Storage{
 		files: map[string]map[string]Asset{
 			"video-1": {
@@ -23,7 +24,7 @@ func New() (*Storage, error) {
 					FPS:        30,
 					Codec:      "avc1.4D401E",
 					Duration:   82,
-					FilePath:   basePath + "testdata/test-360.mp4",
+					FilePath:   filepath.Join(basePath, "testdata/test-360.mp4"),
 				},
 				"480": Asset{
 					Quality:    "480",
@@ -31,7 +32,7 @@ func New() (*Storage, error) {
 					FPS:        30,
 					Codec:      "avc1.4D401F",
 					Duration:   82,
-					FilePath:   basePath + "testdata/test-480.mp4",
+					FilePath:   filepath.Join(basePath, "testdata/test-480.mp4"),
 				},
 				"720": Asset{
 					Quality:    "720",
@@ -39,7 +40,7 @@ func New() (*Storage, error) {
 					FPS:        30,
 					Codec:      "avc1.4D401F",
 					Duration:   82,
-					FilePath:   basePath + "testdata/test-720.mp4",
+					FilePath:   filepath.Join(basePath, "testdata/test-720.mp4"),
 				},
 				"audio": Asset{
 					Quality:    "audio",
@@ -47,7 +48,7 @@ func New() (*Storage, error) {
 					FPS:        0,
 					Codec:      "mp4a.40.2",
 					Duration:   82,
-					FilePath:   basePath + "testdata/test-audio.mp4",
+					FilePath:   filepath.Join(basePath, "testdata/test-audio.mp4"),
 				},
 			},
 			"video-2": {
@@ -57,7 +58,7 @@ func New() (*Storage, error) {
 					FPS:        30,
 					Codec:      "avc1.4D401E",
 					Duration:   8.866667,
-					FilePath:   basePath + "testdata/small-480.mp4",
+					FilePath:   filepath.Join(basePath, "testdata/small-480.mp4"),
 				},
 				"audio": Asset{
 					Quality:    "audio",
@@ -65,7 +66,7 @@ func New() (*Storage, error) {
 					FPS:        0,
 					Codec:      "mp4a.40.2",
 					Duration:   8.866667,
-					FilePath:   basePath + "testdata/small-audio.mp4",
+					FilePath:   filepath.Join(basePath, "testdata/small-audio.mp4"),
 				},
 			},
 		},
