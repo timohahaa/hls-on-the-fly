@@ -3,11 +3,14 @@ package origin
 import (
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 	"github.com/timohahaa/hls-on-the-fly/internal/manifest"
+	"github.com/timohahaa/hls-on-the-fly/internal/mp4"
 )
 
 func (o *Origin) masterM3U8(w http.ResponseWriter, r *http.Request) {
@@ -72,11 +75,12 @@ func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 
 func (o *Origin) chunk(w http.ResponseWriter, r *http.Request) {
 	var (
-		quality  = chi.URLParam(r, "quality")
-		fileName = chi.URLParam(r, "filename")
-		q        = r.URL.Query()
-		from, _  = strconv.ParseInt(q.Get("from"), 10, 64)
-		size, _  = strconv.ParseInt(q.Get("size"), 10, 64)
+		quality        = chi.URLParam(r, "quality")
+		fileName       = chi.URLParam(r, "filename")
+		q              = r.URL.Query()
+		from, _        = strconv.ParseInt(q.Get("from"), 10, 64)
+		size, _        = strconv.ParseInt(q.Get("size"), 10, 64)
+		isEncrypted, _ = strconv.ParseBool(r.URL.Query().Get("encrypt"))
 	)
 
 	asset, err := o.storage.GetFileAsset(fileName, quality)
@@ -84,6 +88,30 @@ func (o *Origin) chunk(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("[origin] (filename=%v, quality=%v) %v", fileName, quality, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	if isEncrypted {
+		tmpDir := filepath.Join(os.TempDir(), fileName)
+		tmpFile, err := os.Create(tmpDir)
+		if err != nil {
+			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = mp4.Encrypt(asset, tmpFile, mp4.EncryptParams{
+			KeyID:  o.kid,
+			Key:    o.key,
+			IVHex:  o.ivHex,
+			Scheme: "cbcs",
+		})
+		if err != nil {
+			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		asset = tmpFile
 	}
 
 	w.Header().Set("Content-Type", "video/mp4")
