@@ -7,3 +7,11 @@ Proof-of-concept создания hls-манифестов налету из fMP
 
 
 Note: шифрованные видео не будут работать в `hls.js` :_), но будут в нативном hls
+
+Examples:
+- http://localhost:8001/video-1/master.m3u8
+- http://localhost:8001/video-2/master.m3u8
+
+Шифрованные:
+- http://localhost:8001/video-1/master.m3u8?ecnrypt=true
+- http://localhost:8001/video-2/master.m3u8?encrypt=true
