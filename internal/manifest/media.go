@@ -60,6 +60,11 @@ func Media(src io.Reader, params MediaParams) ([]byte, error) {
 		var edgeLink = params.FileURL +
 			"?from=" + strconv.FormatInt(0, 10) +
 			"&size=" + strconv.FormatInt(int64(mp4f.Init.Size()), 10)
+
+		if params.IsEncrypted {
+			edgeLink += "&encrypt=true"
+		}
+
 		m3u.WriteString("#EXT-X-MAP:URI=\"")
 		m3u.WriteString(edgeLink)
 		m3u.WriteString("\",BYTERANGE=\"")
@@ -138,6 +143,11 @@ func getFragmentInfo(file *mp4.File) ([]fragmentInfo, error) {
 		}
 	}
 
+	idx := len(fragInfos) - 1
+	if file.Mfra != nil {
+		fragInfos[idx].size += int64(file.Mfra.Size())
+	}
+
 	return fragInfos, nil
 }
 
@@ -146,5 +156,6 @@ func getTargetDuration(framents []fragmentInfo) int {
 	for _, f := range framents {
 		duration = max(duration, f.duration)
 	}
-	return int(math.Ceil(duration))
+	_ = int(math.Round(duration))
+	return 5
 }

@@ -24,9 +24,11 @@ type Origin struct {
 	key   uuid.UUID
 	kid   uuid.UUID
 	ivHex string
+
+	domain string
 }
 
-func New(addr string) (*Origin, error) {
+func New(addr, domain string) (*Origin, error) {
 	var (
 		mux = chi.NewMux()
 		o   = &Origin{
@@ -39,6 +41,7 @@ func New(addr string) (*Origin, error) {
 			key:    uuid.MustParse("4047b82f-a25e-4a58-8c2b-116dbcf81660"),
 			kid:    uuid.MustParse("613aa5a4-cb22-491f-89b8-583a5432046a"),
 			ivHex:  strings.ReplaceAll(uuid.MustParse("9184bb2f-cf97-4226-b3a3-8ed8f8b3fe2e").String(), "-", ""),
+			domain: domain,
 		}
 		err error
 	)

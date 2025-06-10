@@ -7,7 +7,7 @@ import (
 	"slices"
 )
 
-const basePath = "/home/timohahaa/work/kinescope/sandbox/hls-on-the-fly/"
+const basePath = "/home/timofey/hls-on-the-fly/"
 
 type Storage struct {
 	files map[string]map[string]Asset
@@ -17,7 +17,6 @@ func New() (*Storage, error) {
 	return &Storage{
 		files: map[string]map[string]Asset{
 			"video-1": {
-				//"audio": basePath + "testdata/test-audio.mp4",
 				"360": Asset{
 					Quality:    "360",
 					Resolution: "640x360",
@@ -49,6 +48,24 @@ func New() (*Storage, error) {
 					Codec:      "mp4a.40.2",
 					Duration:   82,
 					FilePath:   basePath + "testdata/test-audio.mp4",
+				},
+			},
+			"video-2": {
+				"480": Asset{
+					Quality:    "480",
+					Resolution: "480x486",
+					FPS:        30,
+					Codec:      "avc1.4D401E",
+					Duration:   8.866667,
+					FilePath:   basePath + "testdata/small-480.mp4",
+				},
+				"audio": Asset{
+					Quality:    "audio",
+					Resolution: "none",
+					FPS:        0,
+					Codec:      "mp4a.40.2",
+					Duration:   8.866667,
+					FilePath:   basePath + "testdata/small-audio.mp4",
 				},
 			},
 		},
