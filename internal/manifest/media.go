@@ -57,9 +57,7 @@ func Media(src io.Reader, params MediaParams) ([]byte, error) {
 
 	// init segment
 	{
-		var edgeLink = params.FileURL +
-			"?from=" + strconv.FormatInt(0, 10) +
-			"&size=" + strconv.FormatInt(int64(mp4f.Init.Size()), 10)
+		var edgeLink = params.FileURL + "?fragment=0"
 
 		if params.IsEncrypted {
 			edgeLink += "&encrypt=true"
@@ -85,7 +83,7 @@ func Media(src io.Reader, params MediaParams) ([]byte, error) {
 
 	// fragmtents
 	{
-		for _, frag := range fragments {
+		for idx, frag := range fragments {
 			m3u.WriteString("#EXTINF:")
 			m3u.WriteString(strconv.FormatFloat(frag.duration, 'f', -1, 64))
 			m3u.WriteString(",\n")
@@ -96,9 +94,7 @@ func Media(src io.Reader, params MediaParams) ([]byte, error) {
 			m3u.WriteString(strconv.FormatInt(frag.startPos, 10))
 			m3u.WriteString("\n")
 
-			var edgeLink = params.FileURL +
-				"?from=" + strconv.FormatInt(frag.startPos, 10) +
-				"&size=" + strconv.FormatInt(frag.size, 10)
+			var edgeLink = params.FileURL + "?fragment=" + strconv.Itoa(idx+1) // 1-indexed, framgent=0 - init segment
 
 			if params.IsEncrypted {
 				edgeLink += "&encrypt=true"

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -106,6 +104,7 @@ func (o *Origin) chunk(w http.ResponseWriter, r *http.Request) {
 		quality        = chi.URLParam(r, "quality")
 		fileName       = chi.URLParam(r, "filename")
 		isEncrypted, _ = strconv.ParseBool(r.URL.Query().Get("encrypt"))
+		fragment, _    = strconv.Atoi(r.URL.Query().Get("fragment"))
 	)
 
 	from, to, err := parseRange(r.Header.Get("Range"))
@@ -122,34 +121,22 @@ func (o *Origin) chunk(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isEncrypted {
-		tmpDir := filepath.Join(os.TempDir(), fileName, quality, strconv.FormatInt(from, 10))
 
-		if err := os.MkdirAll(filepath.Dir(tmpDir), os.ModePerm); err != nil {
-			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		w.Header().Set("Content-Type", "video/mp4")
+		w.Header().Add("Content-Length", strconv.FormatInt(to-from+1, 10))
+		w.Header().Add("Content-Range", fmt.Sprintf("%v-%v/*", from, to))
 
-		tmpFile, err := os.Create(tmpDir)
-		if err != nil {
-			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		err = mp4.Encrypt(asset, tmpFile, mp4.EncryptParams{
+		// encrypt and return only needed fragment
+		err = mp4.EncryptFragment(asset, w, mp4.EncryptParams{
 			KeyID:  o.kid,
 			Key:    o.key,
 			IVHex:  o.ivHex,
 			Scheme: "cbcs",
-		})
+		}, fragment)
 		if err != nil {
 			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
 		}
-
-		asset = tmpFile
+		return
 	}
 
 	info, err := asset.Stat()
