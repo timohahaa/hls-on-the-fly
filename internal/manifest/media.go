@@ -156,6 +156,5 @@ func getTargetDuration(framents []fragmentInfo) int {
 	for _, f := range framents {
 		duration = max(duration, f.duration)
 	}
-	_ = int(math.Round(duration))
-	return 5
+	return int(math.Round(duration))
 }

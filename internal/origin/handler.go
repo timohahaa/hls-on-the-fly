@@ -55,43 +55,36 @@ func (o *Origin) mediaM3U8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var (
+		fileURL           = o.domain + fileName + "/" + quality + "/chunk.mp4"
+		keyURL            = o.domain + "key"
+		reader  io.Reader = asset
+	)
+
+	// encryption is done on-the-fly
 	if isEncrypted {
-		tmpDir := filepath.Join(os.TempDir(), fileName, quality, "media-manifest")
+		pipeR, pipeW := io.Pipe()
+		reader = pipeR
 
-		if err := os.MkdirAll(filepath.Dir(tmpDir), os.ModePerm); err != nil {
-			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		go func() {
+			defer pipeW.Close()
 
-		tmpFile, err := os.Create(tmpDir)
-		if err != nil {
-			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			err := mp4.Encrypt(asset, pipeW, mp4.EncryptParams{
+				KeyID:  o.kid,
+				Key:    o.key,
+				IVHex:  o.ivHex,
+				Scheme: "cbcs",
+			})
+			if err != nil {
+				log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
+				pipeW.CloseWithError(err) // pipeR will see the error
+				return
+			}
 
-		err = mp4.Encrypt(asset, tmpFile, mp4.EncryptParams{
-			KeyID:  o.kid,
-			Key:    o.key,
-			IVHex:  o.ivHex,
-			Scheme: "cbcs",
-		})
-		if err != nil {
-			log.Errorf("[origin] (filename=%v, quality=%v) encrypt: %v", fileName, quality, err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		tmpFile.Seek(0, io.SeekStart)
-		asset = tmpFile
+		}()
 	}
 
-	var (
-		fileURL = o.domain + fileName + "/" + quality + "/chunk.mp4"
-		keyURL  = o.domain + "key"
-	)
-	m3u, err := manifest.Media(asset, manifest.MediaParams{
+	m3u, err := manifest.Media(reader, manifest.MediaParams{
 		FileURL:     fileURL,
 		KeyURL:      keyURL,
 		IvHex:       o.ivHex,
