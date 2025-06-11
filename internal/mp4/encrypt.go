@@ -105,6 +105,7 @@ func EncryptFragment(src io.Reader, dst io.Writer, params EncryptParams, fragmen
 				return f.Encode(dst)
 			}
 
+			idx++
 		}
 	}
 
